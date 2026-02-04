@@ -20,9 +20,10 @@ const client = new Client({
     ]
 });
 
-const MTQ2ODY5NzY3ODMyNTIxOTQ3Mg.GPHgG6.1etEYy7LNBXUGgwgROHGpVL-xPgrfSOThiCo60.GErFk6.E4HsGWNoNzBhpRuIoQtmPI2oNXhzpo11b0lGBE = process.env.TOKEN;
-const 1468697678325219472 = process.env.CLIENT_ID;
-const 1467264609718239273 = process.env.LOG_CHANNEL_ID;
+const TOKEN = process.env.TOKEN;
+const CLIENT_ID = process.env.CLIENT_ID;
+const LOG_CHANNEL_ID = process.env.LOG_CHANNEL_ID;
+
 
 /* ==========================================
    PROFESSIONAL EMBED CREATOR

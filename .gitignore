@@ -1,2 +1,5 @@
 node_modules
 .env
+git commit -m "Removed .env from tracking"
+git push
+

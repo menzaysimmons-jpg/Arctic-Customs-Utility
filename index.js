@@ -18,14 +18,14 @@ const CONFIG = {
   colors: { primary: 0x9cd8ff, red: 0xff0000, green: 0x00ff00, orange: 0xffa500 },
   roles: {
     employee: '1466986951008587968',
-    manager: '1468710579618185278',
-    hr: 'YOUR_HR_ROLE_ID', // Replace
+    manager: '1466982050174210244',
+    hr: '1468710579618185278', // Replace
   },
   categories: { tickets: '1467262468379115522' },
   logs: {
     tickets: '1467264765033320706',
     punishments: '1467302915659272406',
-    staff_activity: 'YOUR_STAFF_LOG_ID' // Replace
+    staff_activity: '1467302915659272406' // Replace
   }
 };
 

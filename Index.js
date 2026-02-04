@@ -1,18 +1,9 @@
-// Arctic Customs – All-In-One Discord Bot (EXTENDED)
-// Built with discord.js v14
-// Features Included:
-// - Advanced Ticket System (categories, transcripts, auto-close)
-// - Employee Management (hire, fire, promote, activity tracking)
-// - Punishment System (warnings, strikes, probation, suspension, termination)
-// - Contract System (digital acceptance + logging)
-// - Commission & Design Queue System
-// - Logs (tickets, punishments, actions)
-// - Slash Commands
-// - Database-ready structure (SQLite / MongoDB)
+// ===============================
+// Arctic Customs – Core Bot File
+// discord.js v14
+// ===============================
 
-// NOTE:
-// This file is the CORE entry point.
-// Additional modules should be separated into folders for production use.
+require('dotenv').config();
 
 const {
   Client,
@@ -21,73 +12,244 @@ const {
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle
+  ButtonStyle,
+  ChannelType
 } = require('discord.js');
+
+// ================= CLIENT =================
 
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.GuildMembers
   ]
 });
 
 // ================= CONFIG =================
+// ⚠️ REPLACE ALL IDS WITH REAL ONES
+
 const config = {
-  colors: { primary: '#9cd8ff' },
+  colors: { primary: 0x9cd8ff },
+
   roles: {
     employee: 'EMPLOYEE_ROLE_ID',
     manager: 'MANAGER_ROLE_ID'
   },
+
   categories: {
     tickets: 'TICKET_CATEGORY_ID'
   },
+
   logs: {
     tickets: 'TICKET_LOG_CHANNEL_ID',
     punishments: 'PUNISHMENT_LOG_CHANNEL_ID'
   }
 };
 
+// ================= UTIL =================
+
+function sanitizeChannelName(username, id) {
+  return `ticket-${username}-${id}`
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 90);
+}
+
+async function logToChannel(guild, channelId, embed) {
+  const channel = guild.channels.cache.get(channelId);
+  if (!channel) return;
+  channel.send({ embeds: [embed] }).catch(() => {});
+}
+
 // ================= READY =================
+
 client.once('ready', () => {
-  console.log(`❄️ Arctic Customs Bot fully loaded as ${client.user.tag}`);
+  console.log(`❄️ Arctic Customs Bot loaded as ${client.user.tag}`);
 });
 
 // ================= INTERACTIONS =================
+
 client.on('interactionCreate', async interaction => {
+  if (!interaction.isButton()) return;
 
-  // ---------- OPEN TICKET ----------
-  if (interaction.isButton() && interaction.customId === 'open_ticket') {
-    const channel = await interaction.guild.channels.create({
-      name: `ticket-${interaction.user.username}`,
-      parent: config.categories.tickets,
-      permissionOverwrites: [
-        { id: interaction.guild.id, deny: [PermissionsBitField.Flags.ViewChannel] },
-        { id: interaction.user.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] },
-        { id: config.roles.employee, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] }
-      ]
-    });
+  // =====================================================
+  // OPEN TICKET
+  // =====================================================
+  if (interaction.customId === 'open_ticket') {
+    try {
+      await interaction.deferReply({ ephemeral: true });
 
-    const embed = new EmbedBuilder()
-      .setTitle('🎟️ Arctic Customs Ticket')
-      .setDescription('Please describe your request. An Employee will assist you shortly.')
-      .setColor(config.colors.primary);
+      const guild = interaction.guild;
+      const member = await guild.members.fetch(interaction.user.id);
+      const botMember = guild.members.me;
 
-    channel.send({ content: `<@${interaction.user.id}>`, embeds: [embed] });
-    interaction.reply({ content: '✅ Ticket created.', ephemeral: true });
+      if (!botMember.permissions.has(PermissionsBitField.Flags.ManageChannels)) {
+        return interaction.editReply('❌ I need **Manage Channels** permission.');
+      }
+
+      if (!config.categories.tickets) {
+        return interaction.editReply('❌ Ticket category not configured.');
+      }
+
+      const channelName = sanitizeChannelName(
+        interaction.user.username,
+        interaction.user.id
+      );
+
+      const channel = await guild.channels.create({
+        name: channelName,
+        type: ChannelType.GuildText,
+        parent: config.categories.tickets,
+        permissionOverwrites: [
+          {
+            id: guild.id,
+            deny: [PermissionsBitField.Flags.ViewChannel]
+          },
+          {
+            id: interaction.user.id,
+            allow: [
+              PermissionsBitField.Flags.ViewChannel,
+              PermissionsBitField.Flags.SendMessages
+            ]
+          },
+          {
+            id: config.roles.employee,
+            allow: [
+              PermissionsBitField.Flags.ViewChannel,
+              PermissionsBitField.Flags.SendMessages
+            ]
+          }
+        ]
+      });
+
+      const embed = new EmbedBuilder()
+        .setTitle('🎟️ Arctic Customs Ticket')
+        .setDescription(
+          'Please describe your request.\nAn employee will assist you shortly.'
+        )
+        .setColor(config.colors.primary);
+
+      const closeRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('close_ticket')
+          .setLabel('Close Ticket')
+          .setStyle(ButtonStyle.Danger)
+      );
+
+      await channel.send({
+        content: `<@${interaction.user.id}>`,
+        embeds: [embed],
+        components: [closeRow]
+      });
+
+      const logEmbed = new EmbedBuilder()
+        .setTitle('📂 Ticket Created')
+        .setDescription(`User: <@${interaction.user.id}>\nChannel: ${channel}`)
+        .setColor(config.colors.primary)
+        .setTimestamp();
+
+      await logToChannel(guild, config.logs.tickets, logEmbed);
+
+      await interaction.editReply(`✅ Ticket created: ${channel}`);
+
+    } catch (err) {
+      console.error('Ticket Creation Error:', err);
+      if (interaction.deferred)
+        interaction.editReply('❌ Failed to create ticket.');
+    }
   }
 
-  // ---------- ACCEPT CONTRACT ----------
-  if (interaction.isButton() && interaction.customId === 'accept_contract') {
-    await interaction.member.roles.add(config.roles.employee);
-    interaction.reply({ content: '📄 Contract accepted. Welcome to Arctic Customs.', ephemeral: true });
+  // =====================================================
+  // CLOSE TICKET
+  // =====================================================
+  if (interaction.customId === 'close_ticket') {
+    try {
+      const channel = interaction.channel;
+      const guild = interaction.guild;
+
+      if (!channel.name.startsWith('ticket-')) {
+        return interaction.reply({
+          content: '❌ This is not a ticket channel.',
+          ephemeral: true
+        });
+      }
+
+      await interaction.reply('🔒 Closing ticket in 5 seconds...');
+
+      const logEmbed = new EmbedBuilder()
+        .setTitle('📁 Ticket Closed')
+        .setDescription(`Channel: ${channel.name}`)
+        .setColor(0xff4d4d)
+        .setTimestamp();
+
+      await logToChannel(guild, config.logs.tickets, logEmbed);
+
+      setTimeout(() => {
+        channel.delete().catch(() => {});
+      }, 5000);
+
+    } catch (err) {
+      console.error('Ticket Close Error:', err);
+    }
+  }
+
+  // =====================================================
+  // ACCEPT CONTRACT
+  // =====================================================
+  if (interaction.customId === 'accept_contract') {
+    try {
+      await interaction.deferReply({ ephemeral: true });
+
+      const guild = interaction.guild;
+      const member = await guild.members.fetch(interaction.user.id);
+      const botMember = guild.members.me;
+
+      if (!botMember.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
+        return interaction.editReply('❌ I need **Manage Roles** permission.');
+      }
+
+      const role = guild.roles.cache.get(config.roles.employee);
+      if (!role) {
+        return interaction.editReply('❌ Employee role not found.');
+      }
+
+      if (botMember.roles.highest.position <= role.position) {
+        return interaction.editReply(
+          '❌ My role must be higher than the employee role.'
+        );
+      }
+
+      await member.roles.add(role);
+
+      const embed = new EmbedBuilder()
+        .setTitle('📄 Contract Accepted')
+        .setDescription(`Welcome to Arctic Customs, <@${member.id}>!`)
+        .setColor(config.colors.primary)
+        .setTimestamp();
+
+      await logToChannel(guild, config.logs.punishments, embed);
+
+      await interaction.editReply('✅ Contract accepted.');
+
+    } catch (err) {
+      console.error('Contract Error:', err);
+      if (interaction.deferred)
+        interaction.editReply('❌ Failed to accept contract.');
+    }
   }
 });
 
-// ================= SLASH COMMAND LOGIC PLACEHOLDER =================
-// /warn /strike /suspend /terminate /hire /fire /promote /queue /complete /ticket close
+// ================= GLOBAL ERROR HANDLERS =================
 
+process.on('unhandledRejection', error => {
+  console.error('Unhandled promise rejection:', error);
+});
 
+process.on('uncaughtException', error => {
+  console.error('Uncaught exception:', error);
+});
+
+// ================= LOGIN =================
 
 client.login(process.env.BOT_TOKEN);

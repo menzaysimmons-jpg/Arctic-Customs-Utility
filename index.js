@@ -20,7 +20,7 @@ const client = new Client({
     ]
 });
 
-const MTQ2ODY5NzY3ODMyNTIxOTQ3Mg.GErFk6.E4HsGWNoNzBhpRuIoQtmPI2oNXhzpo11b0lGBE = process.env.TOKEN;
+const MTQ2ODY5NzY3ODMyNTIxOTQ3Mg.GPHgG6.1etEYy7LNBXUGgwgROHGpVL-xPgrfSOThiCo60.GErFk6.E4HsGWNoNzBhpRuIoQtmPI2oNXhzpo11b0lGBE = process.env.TOKEN;
 const 1468697678325219472 = process.env.CLIENT_ID;
 const 1467264609718239273 = process.env.LOG_CHANNEL_ID;
 

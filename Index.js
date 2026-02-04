@@ -89,4 +89,5 @@ client.on('interactionCreate', async interaction => {
 // ================= SLASH COMMAND LOGIC PLACEHOLDER =================
 // /warn /strike /suspend /terminate /hire /fire /promote /queue /complete /ticket close
 
-client.login(config.token);
+token: process.env.BOT_TOKEN
+

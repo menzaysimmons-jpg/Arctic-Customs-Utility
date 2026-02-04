@@ -49,19 +49,6 @@ const config = {
   }
 };
 
-  roles: {
-    employee: 'EMPLOYEE_ROLE_ID',
-    manager: 'MANAGER_ROLE_ID'
-  },
-  categories: {
-    tickets: 'TICKET_CATEGORY_ID'
-  },
-  logs: {
-    tickets: 'TICKET_LOG_CHANNEL_ID',
-    punishments: 'PUNISHMENT_LOG_CHANNEL_ID'
-  }
-};
-
 // ================= READY =================
 client.once('ready', () => {
   console.log(`❄️ Arctic Customs Bot fully loaded as ${client.user.tag}`);

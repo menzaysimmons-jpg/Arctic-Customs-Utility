@@ -1,6 +1,7 @@
 {
   "name": "arctic-customs-utility",
   "version": "1.0.0",
+  "description": "Management bot for Arctic Customs",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
@@ -8,5 +9,8 @@
   "dependencies": {
     "discord.js": "^14.14.1",
     "dotenv": "^16.4.1"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }

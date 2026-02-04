@@ -1,13 +1,27 @@
 {
-  "name": "arctic-customs-utility-elite",
-  "version": "3.0.0",
-  "description": "Enterprise-grade management system for Arctic Customs",
+  "name": "arctic-customs-utility",
+  "version": "1.0.0",
+  "description": "Arctic Customs Utility - Professional Discord Moderation & Utility Bot",
   "main": "index.js",
+  "type": "commonjs",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "dev": "node --watch index.js"
   },
+  "keywords": [
+    "discord",
+    "discord-bot",
+    "moderation",
+    "utility",
+    "arctic-customs"
+  ],
+  "author": "Arctic Customs",
+  "license": "MIT",
   "dependencies": {
     "discord.js": "^14.14.1",
-    "dotenv": "^16.4.1"
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18.17.0"
   }
 }

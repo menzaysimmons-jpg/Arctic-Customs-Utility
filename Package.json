@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Management bot for Arctic Customs",
   "main": "index.js",
+  "type": "commonjs",
   "scripts": {
     "start": "node index.js"
   },
@@ -11,6 +12,6 @@
     "dotenv": "^16.4.1"
   },
   "engines": {
-    "node": "20.x"
+    "node": ">=18.0.0"
   }
 }

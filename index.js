@@ -3,56 +3,42 @@ const http = require('http');
 const { 
   Client, GatewayIntentBits, PermissionsBitField, EmbedBuilder, 
   ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType,
-  REST, Routes, SlashCommandBuilder 
+  REST, Routes, SlashCommandBuilder, ModalBuilder, TextInputBuilder, TextInputStyle 
 } = require('discord.js');
 
 // Railway Health Check
-http.createServer((req, res) => res.end('Arctic Customs Utility Online')).listen(process.env.PORT || 3000);
+http.createServer((req, res) => res.end('Arctic Customs Utility: Elite Edition Online')).listen(process.env.PORT || 3000);
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages]
 });
 
-// ================= CONFIGURATION =================
-const CONFIG = {
-  colors: { primary: 0x9cd8ff, red: 0xff0000, green: 0x00ff00, orange: 0xffa500 },
-  roles: {
-    employee: '1466986951008587968',
-    manager: '1466982050174210244',
-    hr: '1468710579618185278', // Replace
-  },
-  categories: { tickets: '1467262468379115522' },
-  logs: {
-    tickets: '1467264765033320706',
-    punishments: '1467302915659272406',
-    staff_activity: '1467302915659272406' // Replace
-  }
+// ================= THEME & CONFIG =================
+const THEME = {
+  primary: 0x24d2ce, // Arctic Teal
+  danger: 0xff4d4d,
+  success: 0x00ffaa,
+  banner: 'https://i.imgur.com/your_banner_link.png', // Upload your custom GFX here
+  logo: 'https://i.imgur.com/your_logo_link.png'
 };
 
-// ================= SLASH COMMANDS =================
+const CHANNELS = {
+  logs: '1467264765033320706',
+  apps: '1467302915659272406',
+  tickets: '1467262468379115522'
+};
+
+// ================= COMMAND DEFINITIONS =================
 const commands = [
-  // Setup Command
-  new SlashCommandBuilder().setName('setup-hub').setDescription('Deploy Ticket & Application Hub'),
-  
-  // Staff Management
-  new SlashCommandBuilder().setName('warn').setDescription('Warn a user')
-    .addUserOption(o => o.setName('user').setDescription('Target').setRequired(true))
-    .addStringOption(o => o.setName('reason').setDescription('Reason').setRequired(true)),
-    
-  new SlashCommandBuilder().setName('ban').setDescription('Ban a user')
-    .addUserOption(o => o.setName('user').setDescription('Target').setRequired(true))
-    .addStringOption(o => o.setName('reason').setDescription('Reason').setRequired(true)),
-
-  new SlashCommandBuilder().setName('kick').setDescription('Kick a user')
-    .addUserOption(o => o.setName('user').setDescription('Target').setRequired(true))
-    .addStringOption(o => o.setName('reason').setDescription('Reason').setRequired(true)),
-
-  new SlashCommandBuilder().setName('promote').setDescription('Promote an employee')
-    .addUserOption(o => o.setName('user').setDescription('Employee').setRequired(true))
-    .addStringOption(o => o.setName('new_role').setDescription('New Rank Title').setRequired(true)),
-
-  new SlashCommandBuilder().setName('resign').setDescription('Process a resignation')
-    .addUserOption(o => o.setName('user').setDescription('Employee').setRequired(true))
+  new SlashCommandBuilder().setName('setup-hub').setDescription('Deploy the Arctic Customs Professional Hub'),
+  new SlashCommandBuilder().setName('whois').setDescription('Advanced user profile lookup')
+    .addUserOption(o => o.setName('target').setDescription('Member to inspect').setRequired(true)),
+  new SlashCommandBuilder().setName('infraction').setDescription('Log a formal staff infraction')
+    .addUserOption(o => o.setName('user').setDescription('Target staff').setRequired(true))
+    .addStringOption(o => o.setName('type').setDescription('Warning/Strike/Demotion').setRequired(true).addChoices(
+        {name: 'Warning', value: 'warn'}, {name: 'Strike 1', value: 's1'}, {name: 'Strike 2', value: 's2'}
+    ))
+    .addStringOption(o => o.setName('reason').setDescription('Reasoning').setRequired(true)),
 ].map(c => c.toJSON());
 
 // ================= LOGIC HANDLERS =================
@@ -60,97 +46,87 @@ const commands = [
 client.once('ready', async () => {
   const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
   await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
-  console.log('❄️ Arctic Customs Utility Ready');
+  console.log('❄️  Arctic Customs Elite Operational');
 });
 
 client.on('interactionCreate', async interaction => {
-  // 1. SLASH COMMANDS
-  if (interaction.isChatInputCommand()) {
-    const { commandName, options, guild } = interaction;
+  
+  // --- 1. SETUP HUB (THE VISUAL GFX) ---
+  if (interaction.commandName === 'setup-hub') {
+    const mainEmbed = new EmbedBuilder()
+      .setTitle('ARCTIC CUSTOMS | CENTRAL DASHBOARD')
+      .setDescription('> "Precision Designs, Crystal Clear Quality"\n\nWelcome to the official Arctic Customs management terminal. Use the modules below to navigate.')
+      .addFields(
+        { name: '🔗 QUICK NAVIGATION', value: '• [Marketplace](https://discord.com)\n• [Terms of Service](https://discord.com)\n• [Our Portfolio](https://discord.com)', inline: false },
+        { name: '📂 APPLICATIONS', value: 'Currently seeking: **Designers** and **Support Staff**.', inline: false }
+      )
+      .setImage(THEME.banner)
+      .setColor(THEME.primary)
+      .setFooter({ text: 'Arctic Customs Utility • System v2.0', iconURL: THEME.logo });
 
-    // Permissions Check for Staff Commands
-    if (['warn', 'ban', 'kick', 'promote', 'resign'].includes(commandName)) {
-      if (!interaction.member.permissions.has(PermissionsBitField.Flags.ManageMessages)) {
-        return interaction.reply({ content: '❌ Staff only.', ephemeral: true });
-      }
-    }
+    const row1 = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('open_ticket').setLabel('Open Ticket').setStyle(ButtonStyle.Primary).setEmoji('🎟️'),
+      new ButtonBuilder().setCustomId('apply_designer').setLabel('Designer App').setStyle(ButtonStyle.Danger).setEmoji('🎨')
+    );
 
-    if (commandName === 'setup-hub') {
-      const embed = new EmbedBuilder()
-        .setTitle('Arctic Customs | Support & Careers')
-        .setDescription('Select the appropriate button below to open a ticket or apply for a position.')
-        .setColor(CONFIG.colors.primary);
-
-      const ticketRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('t_design').setLabel('Design Ticket').setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId('t_support').setLabel('General Support').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('t_affil').setLabel('Affiliation').setStyle(ButtonStyle.Success),
-        new ButtonBuilder().setCustomId('t_hr').setLabel('HR Ticket').setStyle(ButtonStyle.Danger)
-      );
-
-      const appRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('app_designer').setLabel('Apply: Designer').setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId('app_employee').setLabel('Apply: Employee').setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId('app_hr').setLabel('Apply: Higher Rank').setStyle(ButtonStyle.Danger)
-      );
-
-      await interaction.reply({ embeds: [embed], components: [ticketRow, appRow] });
-    }
-
-    if (commandName === 'warn') {
-      const user = options.getUser('user');
-      const reason = options.getString('reason');
-      const logEmbed = new EmbedBuilder().setTitle('⚠️ Infraction: Warning').addFields({name: 'User', value: `${user}`}, {name: 'Reason', value: reason}, {name: 'Moderator', value: `${interaction.user}`}).setColor(CONFIG.colors.orange);
-      await client.channels.cache.get(CONFIG.logs.punishments).send({ embeds: [logEmbed] });
-      await interaction.reply(`✅ Warned ${user}.`);
-    }
-
-    if (commandName === 'promote') {
-      const user = options.getUser('user');
-      const rank = options.getString('new_role');
-      const logEmbed = new EmbedBuilder().setTitle('📈 Promotion').setDescription(`${user} has been promoted to **${rank}**!`).setAuthor({ name: interaction.user.tag }).setColor(CONFIG.colors.green);
-      await client.channels.cache.get(CONFIG.logs.staff_activity).send({ embeds: [logEmbed] });
-      await interaction.reply(`✅ Promoted ${user} to ${rank}.`);
-    }
+    await interaction.reply({ content: 'Hub deployed.', ephemeral: true });
+    await interaction.channel.send({ embeds: [mainEmbed], components: [row1] });
   }
 
-  // 2. BUTTONS (Tickets & Apps)
-  if (interaction.isButton()) {
-    const isApp = interaction.customId.startsWith('app_');
-    const isTicket = interaction.customId.startsWith('t_');
+  // --- 2. MODAL SYSTEM (THE POP-UP FORM) ---
+  if (interaction.isButton() && interaction.customId === 'apply_designer') {
+    const modal = new ModalBuilder().setCustomId('designer_modal').setTitle('Designer Application');
 
-    if (isApp || isTicket) {
-      await interaction.deferReply({ ephemeral: true });
-      const typeLabel = interaction.customId.replace('t_', '').replace('app_', '').replace('_', ' ');
-      
-      const channel = await interaction.guild.channels.create({
-        name: `${interaction.customId}-${interaction.user.username}`,
-        type: ChannelType.GuildText,
-        parent: CONFIG.categories.tickets,
-        permissionOverwrites: [
-          { id: interaction.guild.id, deny: [PermissionsBitField.Flags.ViewChannel] },
-          { id: interaction.user.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] },
-          { id: CONFIG.roles.employee, allow: [PermissionsBitField.Flags.ViewChannel] }
-        ]
-      });
+    const expInput = new TextInputBuilder()
+      .setCustomId('exp')
+      .setLabel("How long have you been designing?")
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('e.g. 2 years');
 
-      const welcomeEmbed = new EmbedBuilder()
-        .setTitle(`${isApp ? 'Application' : 'Ticket'}: ${typeLabel.toUpperCase()}`)
-        .setDescription(`Hello <@${interaction.user.id}>, staff will be with you shortly. Please provide all necessary details.`)
-        .setColor(CONFIG.colors.primary);
+    const portInput = new TextInputBuilder()
+      .setCustomId('portfolio')
+      .setLabel("Link to your portfolio")
+      .setStyle(TextInputStyle.Paragraph)
+      .setPlaceholder('https://behance.net/...');
 
-      const closeBtn = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('close_ticket').setLabel('Close').setStyle(ButtonStyle.Danger)
+    modal.addComponents(new ActionRowBuilder().addComponents(expInput), new ActionRowBuilder().addComponents(portInput));
+    await interaction.showModal(modal);
+  }
+
+  // --- 3. MODAL SUBMISSION HANDLER ---
+  if (interaction.isModalSubmit() && interaction.customId === 'designer_modal') {
+    const exp = interaction.fields.getTextInputValue('exp');
+    const port = interaction.fields.getTextInputValue('portfolio');
+
+    const logEmbed = new EmbedBuilder()
+      .setTitle('🎨 New Designer Application')
+      .setColor(THEME.primary)
+      .addFields(
+        { name: 'Applicant', value: `${interaction.user} (${interaction.user.id})` },
+        { name: 'Experience', value: exp },
+        { name: 'Portfolio', value: port }
+      )
+      .setTimestamp();
+
+    await client.channels.cache.get(CHANNELS.apps).send({ embeds: [logEmbed] });
+    await interaction.reply({ content: '✅ Your application has been sent to HR.', ephemeral: true });
+  }
+
+  // --- 4. WHOIS COMMAND (PROFESSIONAL LOOKUP) ---
+  if (interaction.commandName === 'whois') {
+    const target = interaction.options.getMember('target');
+    const embed = new EmbedBuilder()
+      .setAuthor({ name: `Profile: ${target.user.tag}`, iconURL: target.user.displayAvatarURL() })
+      .setThumbnail(target.user.displayAvatarURL())
+      .setColor(THEME.primary)
+      .addFields(
+        { name: 'Registration', value: `<t:${Math.floor(target.user.createdTimestamp / 1000)}:D>`, inline: true },
+        { name: 'Joined', value: `<t:${Math.floor(target.joinedTimestamp / 1000)}:R>`, inline: true },
+        { name: 'Permissions', value: target.permissions.has(PermissionsBitField.Flags.Administrator) ? '`ADMINISTRATOR`' : '`STANDARD`', inline: false },
+        { name: `Roles [${target.roles.cache.size - 1}]`, value: target.roles.cache.map(r => r).join(' ').slice(0, 1024) || 'None' }
       );
-
-      await channel.send({ content: `<@${interaction.user.id}>`, embeds: [welcomeEmbed], components: [closeBtn] });
-      await interaction.editReply(`Opened: ${channel}`);
-    }
-
-    if (interaction.customId === 'close_ticket') {
-      await interaction.reply('🔒 Archive in progress... Closing in 5s.');
-      setTimeout(() => interaction.channel.delete().catch(() => {}), 5000);
-    }
+    
+    await interaction.reply({ embeds: [embed] });
   }
 });
 

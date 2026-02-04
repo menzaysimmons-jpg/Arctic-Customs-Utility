@@ -314,3 +314,7 @@ and secure permission validation.
 });
 
 client.login(TOKEN);
+
+process.on("unhandledRejection", console.error);
+process.on("uncaughtException", console.error);
+

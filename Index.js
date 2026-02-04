@@ -35,8 +35,20 @@ const client = new Client({
 
 // ================= CONFIG =================
 const config = {
-  token: 'YOUR_BOT_TOKEN',
   colors: { primary: '#9cd8ff' },
+  roles: {
+    employee: 'EMPLOYEE_ROLE_ID',
+    manager: 'MANAGER_ROLE_ID'
+  },
+  categories: {
+    tickets: 'TICKET_CATEGORY_ID'
+  },
+  logs: {
+    tickets: 'TICKET_LOG_CHANNEL_ID',
+    punishments: 'PUNISHMENT_LOG_CHANNEL_ID'
+  }
+};
+
   roles: {
     employee: 'EMPLOYEE_ROLE_ID',
     manager: 'MANAGER_ROLE_ID'
@@ -89,5 +101,6 @@ client.on('interactionCreate', async interaction => {
 // ================= SLASH COMMAND LOGIC PLACEHOLDER =================
 // /warn /strike /suspend /terminate /hire /fire /promote /queue /complete /ticket close
 
-token: process.env.BOT_TOKEN
 
+
+client.login(process.env.BOT_TOKEN);

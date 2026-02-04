@@ -32,17 +32,17 @@ const config = {
   colors: { primary: 0x9cd8ff },
 
   roles: {
-    employee: 'EMPLOYEE_ROLE_ID',
-    manager: 'MANAGER_ROLE_ID'
+    employee: '1466986951008587968',
+    manager: '1468710579618185278'
   },
 
   categories: {
-    tickets: 'TICKET_CATEGORY_ID'
+    tickets: '1467262468379115522'
   },
 
   logs: {
-    tickets: 'TICKET_LOG_CHANNEL_ID',
-    punishments: 'PUNISHMENT_LOG_CHANNEL_ID'
+    tickets: '1467264765033320706',
+    punishments: '1467302915659272406'
   }
 };
 
